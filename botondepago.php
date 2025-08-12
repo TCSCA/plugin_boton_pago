@@ -16,6 +16,7 @@ include_once 'metodosPago/pagoC2P.php';
 include_once 'metodosPago/pagoManual.php';
 include_once 'metodosPago/transferenciaInmediata.php';
 include_once 'metodosPago/pagoTarjeta.php';
+include_once 'config/config.php';
 // include_once 'payment-qr-woo.php';
 
 function activarPlugin(){
@@ -461,15 +462,12 @@ class InfoBancaria {
     }
 
     public static function obtenerCodigoQR(string $rif) {
-
         error_log('entro al metodo del qr');
-
-        //local
-        // $api_url = 'http://172.16.90.117:8080/api/downloadQrByCommerce';
-        //pre-produccion
-        $api_url = 'http://172.30.145.250:4000/api/downloadQrByCommerce';
-        //desarrollo/produccion
-        // $api_url = 'http://localhost:4000/api/downloadQrByCommerce';
+        
+        // Load configuration
+        require_once plugin_dir_path(dirname(__FILE__)) . 'config/config.php';
+        
+        $api_url = get_api_url('downloadQrByCommerce');
 
         $request_data = array(
             'rif' => $rif
@@ -1058,12 +1056,10 @@ function saveCommerceConfig(){
 
     // Procesar el pago aquí
 
-    //local
-    // $api_url = 'http://172.16.90.117:8080/api/saveCommerceConfig';
-    //pre-produccion
-    $api_url = 'http://172.30.145.250:4000/api/saveCommerceConfig';
-    //desarrollo/produccion
-    // $api_url = 'http://localhost:4000/api/saveCommerceConfig';
+    // Load configuration
+    require_once plugin_dir_path(dirname(__FILE__)) . 'config/config.php';
+    
+    $api_url = get_api_url('saveCommerceConfig');
 
     $idBanco = InfoBancaria::obtenerIdEntidadBancaria($data['bank']);
 

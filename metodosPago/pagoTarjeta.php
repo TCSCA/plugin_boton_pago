@@ -242,12 +242,11 @@ function pago_tarjeta_init() {
 
             error_log('verificacion comercio inicio');
 
-            //local
-            // $api_url_verificacion_card = 'http://172.16.90.117:8080/api/validateCommerceLicence';
-            //pre-produccion
-            // $api_url_verificacion_card = 'http://172.30.145.250:4000/api/validateCommerceLicence';
-            //desarrollo/produccion
-            $api_url_verificacion_card = 'http://localhost:4000/api/validateCommerceLicence';
+            // Load configuration
+            require_once plugin_dir_path(dirname(__FILE__)) . 'config/config.php';
+            
+            // Get the complete API URL for verification
+            $api_url_verificacion_card = get_api_url('validateCommerceLicence');
 
             $headers_verificacion_card = array(
                 'Content-Type: application/json',
@@ -349,21 +348,9 @@ function pago_tarjeta_init() {
 
                 // Procesar el pago aquí
                 
-                if($_POST['card'] === "D"){
-                    //local
-                    // $api_url = 'http://172.16.90.117:8080/api/debitCardPayment';
-                    //pre-produccion
-                    $api_url = 'http://172.30.145.250:4000/api/debitCardPayment';
-                    //desarrollo/produccion
-                    // $api_url = 'http://localhost:4000/api/debitCardPayment';
-                }else{
-                    //local
-                    // $api_url = 'http://172.16.90.117:8080/api/creditCardPayment';
-                    //pre-produccion
-                    $api_url = 'http://172.30.145.250:4000/api/creditCardPayment';
-                    //desarrollo/produccion
-                    // $api_url = 'http://localhost:4000/api/creditCardPayment';
-                }
+                // Obtener el endpoint correcto según el tipo de tarjeta
+                $endpoint = ($_POST['card'] === "D") ? 'debitCardPayment' : 'creditCardPayment';
+                $api_url = get_api_url($endpoint);
 
                 $total = $woocommerce->cart->total;
 

@@ -213,12 +213,10 @@ function pago_manual_init() {
 
             error_log('verificacion comercio inicio');
 
-            //local
-            // $api_url_verificacion_manual = 'http://172.16.90.117:8080/api/validateCommerceLicence';
-            //pre-produccion
-            // $api_url_verificacion_manual = 'http://172.30.145.250:4000/api/validateCommerceLicence';
-            //desarrollo/produccion
-            $api_url_verificacion_manual = 'http://localhost:4000/api/validateCommerceLicence';
+            // Load configuration
+            require_once plugin_dir_path(dirname(__FILE__)) . 'config/config.php';
+            
+            $api_url_verificacion_manual = get_api_url('validateCommerceLicence');
 
             $headers_verificacion_manual = array(
                 'Content-Type: application/json',
@@ -300,12 +298,7 @@ function pago_manual_init() {
 
                 // Procesar el pago aquí
 
-                //local
-                // $api_url = 'http://172.16.90.117:8080/api/validateManualPayment';
-                //pre-produccion
-                $api_url = 'http://172.30.145.250:4000/api/validateManualPayment';
-                //desarrollo/produccion
-                // $api_url = 'http://localhost:4000/api/validateManualPayment';
+                $api_url = get_api_url('validateManualPayment');
 
                 $total = $woocommerce->cart->total;
 

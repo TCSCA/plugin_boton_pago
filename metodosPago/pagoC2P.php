@@ -223,12 +223,10 @@ function pago_c2p_init() {
 
             error_log('verificacion comercio inicio');
 
-            //local
-            // $api_url_verificacion_c2p = 'http://172.16.90.117:8080/api/validateCommerceLicence';
-            //pre-produccion
-            // $api_url_verificacion_c2p = 'http://172.30.145.250:4000/api/validateCommerceLicence';
-            //desarrollo/produccion
-            $api_url_verificacion_c2p = 'http://localhost:4000/api/validateCommerceLicence';
+            // Load configuration
+            require_once plugin_dir_path(dirname(__FILE__)) . 'config/config.php';
+            
+            $api_url_verificacion_c2p = get_api_url('validateCommerceLicence');
 
             $headers_verificacion_c2p = array(
                 'Content-Type: application/json',
@@ -312,12 +310,7 @@ function pago_c2p_init() {
 
                 // Procesar el pago aquí
 
-                //local
-                // $api_url = 'http://172.16.90.117:8080/api/purchaseC2P';
-                //pre-produccion
-                $api_url = 'http://172.30.145.250:4000/api/purchaseC2P';
-                //desarrollo/produccion
-                // $api_url = 'http://localhost:4000/api/purchaseC2P';
+                $api_url = get_api_url('purchaseC2P');
 
                 $total = $woocommerce->cart->total;
 

@@ -261,12 +261,10 @@ function pago_p2c_init() {
 
             error_log('verificacion comercio inicio');
 
-            //local
-            // $api_url_verificacion_p2c = 'http://172.16.90.117:8080/api/validateCommerceLicence';
-            //pre-produccion
-            // $api_url_verificacion_p2c = 'http://172.30.145.250:4000/api/validateCommerceLicence';
-            //desarrollo/produccion
-            $api_url_verificacion_p2c = 'http://localhost:4000/api/validateCommerceLicence';
+            // Load configuration
+            require_once plugin_dir_path(dirname(__FILE__)) . 'config/config.php';
+            
+            $api_url_verificacion_p2c = get_api_url('validateCommerceLicence');
 
             $headers_verificacion_p2c = array(
                 'Content-Type: application/json',
@@ -350,12 +348,7 @@ function pago_p2c_init() {
 
                 // Procesar el pago aquí
 
-                //local
-                // $api_url = 'http://172.16.90.117:8099/api/validatePaymentP2c';
-                //pre-produccion
-                $api_url = 'http://172.30.145.250:4000/api/validatePaymentP2c';
-                //desarrollo/produccion
-                // $api_url = 'http://localhost:4000/api/validatePaymentP2c';
+                $api_url = get_api_url('validatePaymentP2c');
 
                 $total = $woocommerce->cart->total;
 
