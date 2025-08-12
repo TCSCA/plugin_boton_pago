@@ -13,3 +13,4 @@ vendor/
 # Archivos de entorno
 .env
 .env.local
+properties.env
