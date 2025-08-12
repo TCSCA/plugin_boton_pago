@@ -1,0 +1,11 @@
+/* .woocommerce form .form-row .required{
+    display: none ;
+} */
+
+.woocommerce form .form-row .optional{
+    display: none ;
+}
+
+div.woocommerce-order img{
+    display: none ;
+}

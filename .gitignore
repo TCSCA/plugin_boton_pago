@@ -1,0 +1,15 @@
+# WordPress
+wp-config.php
+wp-content/debug.log
+
+# Entorno
+.DS_Store
+Thumbs.db
+
+# Dependencias
+node_modules/
+vendor/
+
+# Archivos de entorno
+.env
+.env.local

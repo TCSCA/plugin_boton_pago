@@ -1,0 +1,20 @@
+/* Color del fondo de los métodos de pago y color de la fuente*/
+div.payment_box{
+    background-color:#068946 !important;
+    color:#fff !important;
+}
+
+/* Color del botón y su fuente */
+button#place_order{
+    background-color:#f17d26 !important;
+    color:#fff !important;
+}
+
+select#banco_tarjeta, select#banco_c2p, select#banco_trf, select#banco_p2c, select#banco_manual {
+    width: -webkit-fill-available !important;
+}
+
+li.payment_method_pago_movil label img, li.payment_method_pago_c2p label img, li.payment_method_trf_inmediata label img, li.payment_method_pago_tarjeta label img{
+    width: 100px;
+    height: auto;
+}
