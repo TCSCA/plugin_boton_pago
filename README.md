@@ -128,46 +128,66 @@ Cada método de pago implementa las siguientes propiedades base: [2](#0-1)
 - **Especialización:** Pagos de comercio a persona
 - **Integración:** Solo entidades bancarias integradas [9](#0-8) 
 
+**Validaciones específicas:**
+- Documento mínimo 6 dígitos [10](#0-9) 
+- Teléfono mínimo 7 dígitos [11](#0-10) 
+- Referencia mínimo 6 dígitos [12](#0-11) 
+
 ### 3. PagoManual (Reporte Manual)
 
 **Archivo:** `metodosPago/pagoManual.php`
 
 **Características:**
-- **ID:** `pago_manual` [10](#0-9) 
+- **ID:** `pago_manual` [13](#0-12) 
 - **Modalidad:** Verificación manual posterior
-- **Datos mostrados:** Información bancaria completa para transferencia [11](#0-10) 
+- **Datos mostrados:** Información bancaria completa para transferencia [14](#0-13) 
+
+**Validaciones específicas:**
+- Documento mínimo 6 dígitos [15](#0-14) 
+- Teléfono mínimo 7 dígitos [16](#0-15) 
+- Referencia mínimo 6 dígitos [17](#0-16) 
 
 ### 4. PagoTarjeta (Pago con Tarjeta)
 
 **Archivo:** `metodosPago/pagoTarjeta.php`
 
 **Características:**
-- **ID:** `pago_tarjeta` [12](#0-11) 
+- **ID:** `pago_tarjeta` [15](#0-14) 
 - **Procesamiento:** Pagos con tarjetas de crédito/débito
-- **Assets específicos:** Logo de tarjetas [13](#0-12) 
+- **Assets específicos:** Logo de tarjetas [16](#0-15) 
 
-### 5. TransferenciaInmediata
+**Validaciones específicas:**
+- Documento mínimo 6 dígitos [17](#0-16) 
+- Teléfono mínimo 7 dígitos [18](#0-17) 
+- Referencia mínimo 6 dígitos [19](#0-18) 
+
+### 5. TransferenciaInmediata (Transferencia Inmediata)
 
 **Archivo:** `metodosPago/transferenciaInmediata.php`
 
 **Características:**
-- **ID:** `trf_inmediata` [14](#0-13) 
+- **ID:** `trf_inmediata` [19](#0-18) 
 - **Funcionalidad:** Transferencias bancarias en tiempo real
-- **Información:** Datos completos del comercio [15](#0-14) 
+- **Información:** Datos completos del comercio [20](#0-19) 
+
+**Validaciones específicas:**
+- Documento mínimo 6 dígitos [21](#0-20) 
+- Teléfono mínimo 7 dígitos [22](#0-21) 
+- Referencia mínimo 6 dígitos [23](#0-22) 
 
 ## Sistema de Configuración Admin
 
 ### Interfaz de Administración
 
-El sistema incluye un menú administrativo completo: [16](#0-15) 
+El sistema incluye un menú administrativo completo: [17](#0-16) 
 
 **Campos de configuración principales:**
-- Nombre del comercio [17](#0-16) 
-- Tipo de documento [18](#0-17) 
-- RIF/Cédula [19](#0-18) 
-- Código de activación [20](#0-19) 
-- Información bancaria [21](#0-20) 
-- Credenciales API Bancaribe [22](#0-21) 
+- Nombre del comercio [18](#0-17) 
+- Tipo de documento [19](#0-18) 
+- RIF/Cédula [20](#0-19) 
+- Código de activación [21](#0-20) 
+- Información bancaria [22](#0-21) 
+- Credenciales API Bancaribe [23](#0-22) 
 
 ### Gestión de Configuración
 
@@ -207,19 +227,248 @@ sequenceDiagram
 
 ### APIs y Endpoints
 
-**Endpoint de validación de comercio:** [24](#0-23) 
-- URL: `http://localhost:4000/api/validateCommerceLicence`
-- Método: POST
-- Headers: Content-Type, User-Agent, KEY
+El plugin se integra con varios endpoints para la validación de pagos y gestión de transacciones. A continuación se detallan todos los endpoints utilizados:
 
-**Endpoint de validación de pagos P2C:** [25](#0-24) 
-- URL: `http://172.30.145.250:4000/api/validatePaymentP2c`  
-- Método: POST
-- Parámetros: RIF, documento pagador, teléfono, referencia, monto, banco
+#### 1. Validación de Comercio
+- **Endpoint:** `/api/validateCommerceLicence`
+- **Método:** POST
+- **Descripción:** Verifica la validez de la licencia del comercio antes de procesar cualquier pago.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "rif": "string" // Formato: [tipo_documento][número_documento] (ej: "J123456789")
+  }
+  ```
+- **Respuesta exitosa (200 OK):**
+  ```json
+  {
+    "status": "SUCCESS",
+    "data": {
+      // Datos de la licencia del comercio
+    }
+  }
+  ```
+- **Respuesta de error:**
+  ```json
+  {
+    "status": "ERROR",
+    "data": "Mensaje de error descriptivo"
+  }
+  ```
 
-**Endpoint de código QR:** [26](#0-25) 
-- URL: `http://172.30.145.250:4000/api/downloadQrByCommerce`
-- Funcionalidad: Generación de códigos QR para pagos móviles
+#### 2. Validación de Pagos P2C (Person to Commerce)
+- **Endpoint:** `/api/validatePaymentP2c`
+- **Método:** POST
+- **Descripción:** Valida y procesa un pago móvil de persona a comercio.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "rif": "string",              // RIF del comercio
+    "payerDocument": "string",    // Documento del pagador con tipo (ej: "V12345678")
+    "debitPhone": "string",       // Teléfono del pagador con código de área
+    "referenceNumber": "string",  // Número de referencia del pago
+    "transactionAmount": number,   // Monto de la transacción
+    "bankPayment": "string",      // ID del banco
+    "paymentChannel": number,      // Canal de pago (1 para móvil)
+    "email": "string"            // Email del cliente
+  }
+  ```
+
+#### 3. Validación de Pago Manual
+- **Endpoint:** `/api/validateManualPayment`
+- **Método:** POST
+- **Descripción:** Valida un pago realizado manualmente por transferencia o depósito.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "rif": "string",              // RIF del comercio
+    "payerDocument": "string",    // Documento del pagador con tipo
+    "debitPhone": "string",       // Teléfono del pagador con código de área
+    "referenceNumber": "string",  // Número de referencia del pago
+    "typeTransaction": "string",  // Tipo de transacción
+    "bankCode": "string",         // Código del banco
+    "transactionAmount": number,   // Monto de la transacción
+    "paymentChannel": number,      // Canal de pago (1 para móvil)
+    "email": "string"            // Email del cliente
+  }
+  ```
+
+#### 4. Compra C2P (Commerce to Person)
+- **Endpoint:** `/api/purchaseC2P`
+- **Método:** POST
+- **Descripción:** Procesa un pago de comercio a persona.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "rif": "string",                 // RIF del comercio
+    "phoneNumberCommerce": "string",  // Teléfono del comercio
+    "nameCommerce": "string",        // Nombre del comercio
+    "identificationDocument": "string", // Documento del beneficiario
+    "phoneNumber": "string",         // Teléfono del beneficiario
+    "bankPayment": "string",         // ID del banco
+    "transactionAmount": number,      // Monto de la transacción
+    "concept": "string",            // Concepto del pago
+    "otp": "string",                // Código OTP de validación
+    "paymentChannel": number,         // Canal de pago
+    "email": "string"               // Email del cliente
+  }
+  ```
+
+#### 5. Pago con Tarjeta de Débito
+- **Endpoint:** `/api/debitCardPayment`
+- **Método:** POST
+- **Descripción:** Procesa un pago con tarjeta de débito.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "rif": "string",                 // RIF del comercio
+    "currency": "string",           // Moneda (ej: "VED")
+    "amount": number,                // Monto de la transacción
+    "paymentChannel": number,        // Canal de pago
+    "reason": "string",             // Concepto del pago
+    "bankPayment": "string",        // ID del banco
+    "debitCard": {
+      "holderName": "string",      // Nombre del titular
+      "holderId": "string",        // Documento del titular con tipo
+      "holderIdDoc": "string",     // Tipo de documento
+      "cardNumber": "string",      // Número de tarjeta
+      "cvc": "string",             // Código de seguridad
+      "expirationMonth": number,    // Mes de expiración (1-12)
+      "expirationYear": number,     // Año de expiración (2 dígitos)
+      "cardType": "DEBIT",         // Tipo de tarjeta
+      "accountType": "string",     // Tipo de cuenta
+      "pin": "string"              // PIN de la tarjeta
+    },
+    "email": "string"              // Email del cliente
+  }
+  ```
+
+#### 6. Pago con Tarjeta de Crédito
+- **Endpoint:** `/api/creditCardPayment`
+- **Método:** POST
+- **Descripción:** Procesa un pago con tarjeta de crédito.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "rif": "string",                 // RIF del comercio
+    "currency": "string",           // Moneda (ej: "VED")
+    "amount": number,                // Monto de la transacción
+    "paymentChannel": number,        // Canal de pago
+    "reason": "string",             // Concepto del pago
+    "bankPayment": "string",        // ID del banco
+    "creditCard": {
+      "holderName": "string",      // Nombre del titular
+      "holderId": "string",        // Documento del titular con tipo
+      "holderIdDoc": "string",     // Tipo de documento
+      "cardNumber": "string",      // Número de tarjeta
+      "cvc": "string",             // Código de seguridad
+      "expirationMonth": number,    // Mes de expiración (1-12)
+      "expirationYear": number,     // Año de expiración (2 dígitos)
+      "cardType": "CREDIT",        // Tipo de tarjeta
+      "installments": number,       // Número de cuotas
+      "pin": "string"              // PIN de la tarjeta (opcional)
+    },
+    "email": "string"              // Email del cliente
+  }
+  ```
+
+#### 7. Guardar Configuración del Comercio
+- **Endpoint:** `/api/saveCommerceConfig`
+- **Método:** POST
+- **Descripción:** Actualiza la configuración del comercio en el sistema.
+- **Headers requeridos:**
+  ```
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0
+  KEY: key12345
+  CONFIRMATION_KEY: string
+  ```
+- **Parámetros de entrada (JSON):**
+  ```json
+  {
+    "idBank": "string",                // ID del banco
+    "bankAccount": "string",          // Número de cuenta bancaria
+    "consumerKey": "string",          // Clave de consumidor
+    "consumerSecret": "string",       // Secreto del consumidor
+    "consumerKeyCreditCard": "string", // Clave de consumidor para tarjetas
+    "consumerSecretCreditCard": "string", // Secreto para tarjetas
+    "rif": "string",                  // RIF del comercio (con tipo)
+    "commercePhone": "string",        // Teléfono del comercio
+    "hash": "string"                  // Hash de validación
+  }
+  ```
+
+#### 8. Generación de Código QR
+- **Endpoint:** `/api/downloadQrByCommerce`
+- **Método:** GET
+- **Descripción:** Genera un código QR asociado al comercio para facilitar los pagos móviles.
+- **Parámetros de consulta (Query Parameters):**
+  - `rif`: RIF del comercio (obligatorio)
+  - `size`: Tamaño de la imagen QR (opcional)
+- **Respuesta exitosa (200 OK):**
+  - Imagen del código QR en formato PNG
+
+#### Notas importantes:
+1. **Estructura de URLs:** `{entorno}/api/{endpoint}`
+   - Desarrollo: `http://localhost:4000`
+   - Staging: `http://142.00.045.050:4000`
+   - Producción: `http://132.16.00.0117:8080`
+
+2. **Seguridad:**
+   - Todas las comunicaciones deben realizarse a través de HTTPS en entornos de producción.
+   - Los tokens de autenticación deben manejarse de forma segura.
+   - No exponer claves secretas en el código del cliente.
+
+3. **Manejo de errores:**
+   - Implementar manejo de errores para todos los endpoints.
+   - Verificar los códigos de estado HTTP.
+   - Proporcionar mensajes de error descriptivos al usuario final.
+
+4. **Validaciones:**
+   - Validar todos los campos de entrada en el cliente y el servidor.
+   - Implementar límites de tasa (rate limiting) para prevenir abusos.
+   - Registrar intentos fallidos de autenticación.
+
+5. **Monitoreo:**
+   - Monitorear el rendimiento de las APIs.
+   - Configurar alertas para errores inusuales.
+   - Mantener registros de auditoría de transacciones.
 
 ## Integración Externa y Seguridad
 
@@ -267,7 +516,7 @@ CREATE TABLE wp_entidad_bancaria(
 
 ### Clase InfoBancaria
 
-**Funcionalidades principales:** [31](#0-30) 
+**Funcionalidades principales dentro de la clase InfoBancaria:** [31](#0-30) 
 
 ```mermaid
 classDiagram
