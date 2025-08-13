@@ -1,158 +1,355 @@
-## Resumen de la Arquitectura
+# Documentación Técnica: Payment Gateway Methods
 
-El plugin implementa un sistema de métodos de pago para WooCommerce que sigue un patrón arquitectónico estandarizado <cite/>. Todos los métodos de pago extienden la clase `WC_Payment_Gateway` de WooCommerce y siguen patrones consistentes para configuración, validación y procesamiento de pagos a través de APIs externas <cite/>.
+**Versión:** 1.7.9  
+**Fecha:** Diciembre 2024  
+**Autor:** Technology Consulting Solutions (T.C.S)  
 
-## Estructura Común de Clases
+## Resumen
+
+El módulo **Payment Gateway Methods** es un plugin para WooCommerce que implementa múltiples métodos de pago venezolanos integrados con APIs bancarias externas. [1](#0-0)  El sistema proporciona cinco métodos de pago especializados: Pago Móvil P2C, Pago C2P, Pago Manual, Pago con Tarjeta y Transferencia Inmediata, todos con validación en tiempo real a través de servicios externos.
+
+## Diagrama de Arquitectura General
 
 ```mermaid
 graph TB
-    subgraph "WordPress/WooCommerce"
-        WCG["WC_Payment_Gateway"]
-    end
+    A["Plugin Principal<br/>botondepago.php"] --> B["Configuración Admin"]
+    A --> C["Base de Datos"]
+    A --> D["Métodos de Pago"]
     
-    subgraph "Implementaciones de Métodos de Pago"
-        PM["PagoMovil"]
-        PC2P["PagoC2P"] 
-        PMAN["PagoManual"]
-        PTR["TransferenciaInmediata"]
-        PTAR["PagoTarjeta"]
-    end
+    D --> E["PagoMovil"]
+    D --> F["PagoC2P"] 
+    D --> G["PagoManual"]
+    D --> H["PagoTarjeta"]
+    D --> I["TransferenciaInmediata"]
     
-    subgraph "Componentes Compartidos"
-        IB["InfoBancaria"]
-        ADMIN_JS["Archivos JavaScript Admin"]
-        FORM_FIELDS["Patrones de Campos de Formulario"]
-        API_CLIENT["Integración API Externa"]
-    end
+    E --> J["API Externa Bancaribe"]
+    F --> J
+    H --> J
+    I --> J
     
-    subgraph "Almacenamiento de Configuración"
-        WP_OPTIONS["WordPress Options"]
-        CUSTOM_DB["Tabla entidad_bancaria"]
-    end
+    B --> K["InfoBancaria Class"]
+    K --> C
     
-    WCG --> PM
-    WCG --> PC2P
-    WCG --> PMAN
-    WCG --> PTR
-    WCG --> PTAR
+    L["Assets JS"] --> D
     
-    PM --> IB
-    PC2P --> IB
-    PMAN --> IB
-    PTR --> IB
-    PTAR --> IB
-    
-    PM --> ADMIN_JS
-    PC2P --> ADMIN_JS
-    PMAN --> ADMIN_JS
-    PTR --> ADMIN_JS
-    PTAR --> ADMIN_JS
-    
-    PM --> FORM_FIELDS
-    PC2P --> FORM_FIELDS
-    PMAN --> FORM_FIELDS
-    PTR --> FORM_FIELDS
-    PTAR --> FORM_FIELDS
-    
-    PM --> API_CLIENT
-    PC2P --> API_CLIENT
-    PMAN --> API_CLIENT
-    PTR --> API_CLIENT
-    PTAR --> API_CLIENT
-    
-    IB --> WP_OPTIONS
-    IB --> CUSTOM_DB
+    C --> M["wp_entidad_bancaria"]
 ```
+
+## Estructura Común de Clases
+
+Todos los métodos de pago siguen una arquitectura común basada en herencia de `WC_Payment_Gateway`:
+
+```mermaid
+classDiagram
+    class WC_Payment_Gateway {
+        <<abstract>>
+    }
+    
+    class PaymentMethodBase {
+        +id: string
+        +method_title: string
+        +method_description: string
+        +enabled: boolean
+        +has_fields: boolean
+        +supports: array
+        +needs_setup(): boolean
+        +init_form_fields(): void
+        +payment_fields(): void
+        +process_payment(order_id): array
+        +validate_fields(): boolean
+        +receipt_page(order_id): void
+    }
+    
+    class PagoMovil {
+        +id: "pago_movil"
+        +init_form_fields_p2c(): void
+    }
+    
+    class PagoC2P {
+        +id: "pago_c2p"
+    }
+    
+    class PagoManual {
+        +id: "pago_manual"
+        +init_form_fields_manual(): void
+    }
+    
+    class PagoTarjeta {
+        +id: "pago_tarjeta"
+        +init_form_fields_tarjeta(): void
+    }
+    
+    class TransferenciaInmediata {
+        +id: "trf_inmediata"
+        +init_form_fields_transferencia(): void
+    }
+    
+    WC_Payment_Gateway <|-- PaymentMethodBase
+    PaymentMethodBase <|-- PagoMovil
+    PaymentMethodBase <|-- PagoC2P
+    PaymentMethodBase <|-- PagoManual
+    PaymentMethodBase <|-- PagoTarjeta
+    PaymentMethodBase <|-- TransferenciaInmediata
+```
+
+### Propiedades Comunes
+
+Cada método de pago implementa las siguientes propiedades base: [2](#0-1) 
+
+- **ID único:** Identificador del gateway de pago
+- **Título del método:** Nombre mostrado al usuario
+- **Descripción:** Información detallada del método
+- **Soporte de productos:** Compatibilidad con productos WooCommerce
+- **Campos personalizados:** Formularios específicos por método
 
 ## Métodos de Pago Implementados
 
-Actualmente se han implementado tres de los cinco métodos planificados <cite/>:
+### 1. PagoMovil (Pago Móvil P2C)
 
-- **PagoMovil** (`metodosPago/pagoMovil.php`): Pagos móviles P2C con soporte para códigos QR [1](#0-0) 
-- **PagoC2P** (`metodosPago/pagoC2P.php`): Pagos Cliente-a-Persona con validación OTP [2](#0-1) 
-- **PagoManual** (`metodosPago/pagoManual.php`): Reporte y validación manual de transacciones <cite/>
+**Archivo:** `metodosPago/pagoMovil.php`
 
-## Flujo de Integración con API Externa
+**Características:**
+- **ID:** `pago_movil` [3](#0-2) 
+- **Integración:** API Bancaribe para validación inmediata
+- **Campos de entrada:** Documento, banco, teléfono, monto, referencia
+- **Código QR:** Generación automática para facilitar pagos [4](#0-3) 
 
-Todos los métodos de pago siguen un patrón de integración de dos fases consistente <cite/>:
+**Validaciones específicas:**
+- Documento mínimo 6 dígitos [5](#0-4) 
+- Teléfono mínimo 7 dígitos [6](#0-5) 
+- Referencia mínimo 6 dígitos [7](#0-6) 
 
-```mermaid
-sequenceDiagram
-    participant USER as "Checkout Cliente"
-    participant PM as "Clase Método de Pago"
-    participant LICENSE_API as "API validateCommerceLicence"
-    participant PAYMENT_API as "API Procesamiento Pago"
-    participant WC as "Orden WooCommerce"
-    
-    USER->>PM: "Enviar formulario de pago"
-    PM->>PM: "validate_fields()"
-    
-    Note over PM,LICENSE_API: Fase 1: Validación Licencia Comercio
-    PM->>LICENSE_API: "POST /api/validateCommerceLicence"
-    Note right of LICENSE_API: payload: {"rif": "tipo_documento + documento"}
-    LICENSE_API->>PM: "Respuesta validación licencia"
-    
-    alt Licencia Inválida
-        PM->>USER: "Mostrar error de licencia"
-    else Licencia Válida
-        Note over PM,PAYMENT_API: Fase 2: Procesamiento de Pago
-        PM->>PAYMENT_API: "POST /api/{endpointPago}"
-        Note right of PAYMENT_API: Datos de pago específicos del método
-        PAYMENT_API->>PM: "Respuesta procesamiento pago"
-        
-        alt Error de Pago
-            PM->>USER: "Mostrar error de pago"
-        else Pago Exitoso  
-            PM->>WC: "update_status('on-hold')"
-            PM->>USER: "Redirigir a página de éxito"
-        end
-    end
-```
+### 2. PagoC2P (Commerce to Person)
+
+**Archivo:** `metodosPago/pagoC2P.php`
+
+**Características:**
+- **ID:** `pago_c2p` [8](#0-7) 
+- **Especialización:** Pagos de comercio a persona
+- **Integración:** Solo entidades bancarias integradas [9](#0-8) 
+
+### 3. PagoManual (Reporte Manual)
+
+**Archivo:** `metodosPago/pagoManual.php`
+
+**Características:**
+- **ID:** `pago_manual` [10](#0-9) 
+- **Modalidad:** Verificación manual posterior
+- **Datos mostrados:** Información bancaria completa para transferencia [11](#0-10) 
+
+### 4. PagoTarjeta (Pago con Tarjeta)
+
+**Archivo:** `metodosPago/pagoTarjeta.php`
+
+**Características:**
+- **ID:** `pago_tarjeta` [12](#0-11) 
+- **Procesamiento:** Pagos con tarjetas de crédito/débito
+- **Assets específicos:** Logo de tarjetas [13](#0-12) 
+
+### 5. TransferenciaInmediata
+
+**Archivo:** `metodosPago/transferenciaInmediata.php`
+
+**Características:**
+- **ID:** `trf_inmediata` [14](#0-13) 
+- **Funcionalidad:** Transferencias bancarias en tiempo real
+- **Información:** Datos completos del comercio [15](#0-14) 
 
 ## Sistema de Configuración Admin
 
-Cada método de pago incluye JavaScript dedicado para la gestión de configuración admin [3](#0-2) :
+### Interfaz de Administración
+
+El sistema incluye un menú administrativo completo: [16](#0-15) 
+
+**Campos de configuración principales:**
+- Nombre del comercio [17](#0-16) 
+- Tipo de documento [18](#0-17) 
+- RIF/Cédula [19](#0-18) 
+- Código de activación [20](#0-19) 
+- Información bancaria [21](#0-20) 
+- Credenciales API Bancaribe [22](#0-21) 
+
+### Gestión de Configuración
 
 ```mermaid
 graph LR
-    subgraph "WordPress Admin"
-        SETTINGS_PAGE["Página Configuración WooCommerce"]
-        SECTION_CHECK{"section == gateway_id?"}
-    end
+    A["Admin Interface"] --> B["WordPress Options API"]
+    B --> C["insertar_datos_configuracion()"]
+    C --> D["Database Storage"]
     
-    subgraph "Scripts de Configuración"
-        C2P_SCRIPT["pagoC2PScript.js"]
-        MANUAL_SCRIPT["pagoManualScript.js"] 
-        MOVIL_SCRIPT["pagoMovilScript.js"]
-    end
-    
-    subgraph "Datos de Configuración"
-        WP_OPTIONS["WordPress Options"]
-        CONFIG_OBJECT["Objeto JS config_admin"]
-    end
-    
-    SETTINGS_PAGE --> SECTION_CHECK
-    SECTION_CHECK -->|"pago_c2p"| C2P_SCRIPT
-    SECTION_CHECK -->|"pago_manual"| MANUAL_SCRIPT
-    SECTION_CHECK -->|"pago_movil"| MOVIL_SCRIPT
-    
-    WP_OPTIONS --> CONFIG_OBJECT
-    CONFIG_OBJECT --> C2P_SCRIPT
-    CONFIG_OBJECT --> MANUAL_SCRIPT
-    CONFIG_OBJECT --> MOVIL_SCRIPT
+    E["Payment Methods"] --> F["get_option()"]
+    F --> B
 ```
 
-## Endpoints de API y Configuración
+Las configuraciones se almacenan usando WordPress Options API: [23](#0-22) 
 
-Cada método utiliza diferentes endpoints pero sigue los mismos patrones de autenticación [4](#0-3) :
+## Flujo de Integración con API Externa
 
-- **PagoC2P**: `172.30.145.250:4000/api/purchaseC2P`
-- **PagoManual**: `172.30.145.250:4000/api/validateManualPayment` [5](#0-4) 
-- **PagoMovil**: `172.30.145.250:4000/api/validatePaymentP2c` [6](#0-5) 
+### Proceso de Validación de Pagos
 
-**Notes**
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant W as WooCommerce
+    participant P as Payment Gateway
+    participant V as Validación Comercio
+    participant A as API Externa
+    
+    U->>W: Realizar Pago
+    W->>P: process_payment()
+    P->>V: validateCommerceLicence
+    V-->>P: Licencia Válida
+    P->>A: validatePaymentP2c
+    A-->>P: Respuesta Validación
+    P->>W: Resultado Final
+    W->>U: Confirmación
+```
 
-La arquitectura está diseñada para ser extensible, con dos métodos adicionales planificados: `PagoTarjeta` y `TransferenciaInmediata` <cite/>. El archivo `transferenciaInmediata.php` ya existe pero parece estar en desarrollo [7](#0-6) . Todos los métodos comparten la misma estructura de validación de campos y manejo de errores, lo que facilita el mantenimiento y la consistencia del código.
+### APIs y Endpoints
 
-Wiki pages you might want to explore:
-- [Payment Gateway Methods (TCSCA/plugin_boton_pago)](/wiki/TCSCA/plugin_boton_pago#3)
+**Endpoint de validación de comercio:** [24](#0-23) 
+- URL: `http://localhost:4000/api/validateCommerceLicence`
+- Método: POST
+- Headers: Content-Type, User-Agent, KEY
+
+**Endpoint de validación de pagos P2C:** [25](#0-24) 
+- URL: `http://172.30.145.250:4000/api/validatePaymentP2c`  
+- Método: POST
+- Parámetros: RIF, documento pagador, teléfono, referencia, monto, banco
+
+**Endpoint de código QR:** [26](#0-25) 
+- URL: `http://172.30.145.250:4000/api/downloadQrByCommerce`
+- Funcionalidad: Generación de códigos QR para pagos móviles
+
+## Integración Externa y Seguridad
+
+### Autenticación y Seguridad
+
+**Headers de seguridad:**
+- Content-Type: application/json
+- User-Agent: Mozilla/5.0  
+- KEY: key12345 [27](#0-26) 
+
+**Validación de respuestas:**
+- Detección de encoding automática [28](#0-27) 
+- Manejo de errores específicos [29](#0-28) 
+
+### Manejo de Errores
+
+```mermaid
+graph TD
+    A["API Response"] --> B{Status Check}
+    B -->|ERROR| C["Error Handling"]
+    B -->|SUCCESS| D["Payment Approved"]
+    B -->|500| E["Connection Error"]
+    
+    C --> F["Show User Message"]
+    D --> G["Update Order Status"]
+    E --> H["System Error"]
+```
+
+## Sistema de Gestión de Base de Datos
+
+### Estructura de Tablas
+
+**Tabla: `wp_entidad_bancaria`** [30](#0-29) 
+
+```sql
+CREATE TABLE wp_entidad_bancaria(
+    id INT NOT NULL AUTO_INCREMENT,
+    nombre VARCHAR(45) NOT NULL,
+    codigo_bin VARCHAR(4) NOT NULL,
+    isIntegrado BOOLEAN NOT NULL,
+    status BOOLEAN DEFAULT false,
+    PRIMARY KEY (id)
+);
+```
+
+### Clase InfoBancaria
+
+**Funcionalidades principales:** [31](#0-30) 
+
+```mermaid
+classDiagram
+    class InfoBancaria {
+        +obtenerEntidadesBancarias()$ array
+        +obtenerNombreEntidadBancaria(int)$ string
+        +obtenerIdEntidadBancaria(int)$ string
+        +obtenerEntidadesBancariasIntegradas()$ array
+        +obtenerCodigoQR(string)$ void
+    }
+```
+
+### Datos Iniciales
+
+El sistema incluye 25 entidades bancarias venezolanas precargadas: [32](#0-31) 
+
+## Estructura del Proyecto
+
+```
+plugin_boton_pago/
+├── botondepago.php          # Archivo principal del plugin
+├── metodosPago/             # Directorio de métodos de pago
+│   ├── pagoMovil.php       # Pago Móvil P2C
+│   ├── pagoC2P.php         # Commerce to Person
+│   ├── pagoManual.php      # Reportes manuales
+│   ├── pagoTarjeta.php     # Pagos con tarjeta
+│   └── transferenciaInmediata.php  # Transferencias
+└── assets/                  # Recursos estáticos
+    └── js/                  # Scripts JavaScript
+        ├── pagoMovilScript.js
+        ├── pagoC2PScript.js
+        ├── pagoManualScript.js
+        ├── pagoTarjetaJS.js
+        └── transferenciaInmediataScript.js
+```
+
+### Registro de Métodos de Pago
+
+Los métodos se registran en WooCommerce mediante filtros: [33](#0-32) 
+
+```mermaid
+graph LR
+    A["Plugin Load"] --> B["Include Files"]
+    B --> C["Class Registration"]
+    C --> D["WooCommerce Filters"]
+    D --> E["Gateway Availability"]
+```
+
+## Análisis de Secciones Padre
+
+### Hooks y Activación
+
+**Activación del plugin:** [34](#0-33) 
+- Creación de tablas de base de datos
+- Inserción de registros iniciales de bancos
+
+**Hooks de WordPress:** [35](#0-34) 
+- `register_activation_hook`: Configuración inicial
+- `register_deactivation_hook`: Limpieza
+
+### Compatibilidad
+
+**Verificación de WooCommerce:** [36](#0-35) 
+- Control de versión automático
+- Validación de dependencias
+
+**Carga condicional de métodos:** [37](#0-36) 
+
+## Notas
+
+**Aspectos importantes identificados:**
+
+1. **Arquitectura modular:** Cada método de pago es un archivo independiente que extiende la funcionalidad base de WooCommerce.
+
+2. **Integración API centralizada:** Todos los métodos utilizan endpoints similares con diferentes parámetros según el tipo de pago.
+
+3. **Configuración unificada:** Un solo panel de administración gestiona las credenciales para todos los métodos.
+
+4. **Base de datos optimizada:** Tabla específica para entidades bancarias venezolanas con códigos BIN oficiales.
+
+5. **Seguridad implementada:** Validación de licencias comerciales antes del procesamiento de pagos.
+
+6. **Manejo de errores robusto:** Diferentes tipos de respuesta según el estado de la transacción y errores específicos del banco.
+
+La documentación refleja un sistema maduro y bien estructurado para el procesamiento de pagos electrónicos venezolanos con integración directa a sistemas bancarios.
